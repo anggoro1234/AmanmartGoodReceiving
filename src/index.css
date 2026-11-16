@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: #f8fafc;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+}
+
+@keyframes scanFlashSuccess {
+  0% {
+    background-color: #dcfce7;
+  }
+  100% {
+    background-color: #ffffff;
+  }
+}
+
+@keyframes scanFlashError {
+  0% {
+    background-color: #fee2e2;
+  }
+  100% {
+    background-color: #fef2f2;
+  }
+}
+
+.animate-scan-success {
+  animation: scanFlashSuccess 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-scan-error {
+  animation: scanFlashError 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-success,
+  .animate-scan-error {
+    animation: none;
+  }
+}

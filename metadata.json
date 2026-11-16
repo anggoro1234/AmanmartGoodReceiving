@@ -1,0 +1,6 @@
+{
+  "name": "Amanmart Goods Receiving System",
+  "description": "High-speed warehouse barcode scanning, automated quantity aggregation, and quality control receiving system for Amanmart supermarkets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
