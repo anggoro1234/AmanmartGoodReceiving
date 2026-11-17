@@ -3,12 +3,13 @@ import { useState, type ChangeEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { importCatalogItems } from '../services/grService';
-import { parseCatalogRows, type MasterCatalogItem } from '../utils/grLogic';
+import { parseCatalogRows, type MasterCatalogItem, type ParsedCatalogResult } from '../utils/grLogic';
 
 export function CatalogImportView() {
   const { getToken } = useAuth();
   const [parsedItems, setParsedItems] = useState<MasterCatalogItem[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
+  const [skippedReasons, setSkippedReasons] = useState<Array<{ row: number; reason: string }>>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
@@ -35,9 +36,10 @@ export function CatalogImportView() {
         workbook.Sheets[firstSheet],
         { defval: '' }
       );
-      const { validItems, skippedRows } = parseCatalogRows(rawRows);
+      const { validItems, skippedRows, skippedReasons: reasons } = parseCatalogRows(rawRows);
       setParsedItems(validItems);
       setSkippedCount(skippedRows);
+      setSkippedReasons(reasons);
 
       if (validItems.length === 0) {
         setErrorMessage(
@@ -166,8 +168,21 @@ export function CatalogImportView() {
                     Preview Ready to Import
                   </h2>
                   <p className="text-xs text-slate-500">
-                    {parsedItems.length} valid items parsed
-                    {skippedCount > 0 ? ` · ${skippedCount} invalid or duplicate rows skipped` : ''}
+                    {parsedItems.length} valid items parsed{' · '}
+                    {skippedCount} invalid or duplicate rows skipped
+                    {skippedReasons.length > 0 && (
+                      <>
+                        <br />
+                        <span className="text-xs text-slate-400 mt-1 block">
+                          Skipped reasons:{' '}
+                          {skippedReasons
+                            .slice(0, 5)
+                            .map((r) => `Row ${r.row}: ${r.reason}`)
+                            .join(', ')}
+                          {skippedReasons.length > 5 && ` ... and ${skippedReasons.length - 5} more`}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
 
@@ -241,7 +256,7 @@ export function CatalogImportView() {
             </div>
             <div className="py-2.5 flex items-center justify-between gap-3">
               <dt className="font-mono font-semibold text-slate-900">barcode</dt>
-              <dd className="text-slate-600">Required · EAN-13 / UPC</dd>
+              <dd className="text-slate-600">Optional · Auto-generated if empty</dd>
             </div>
             <div className="py-2.5 flex items-center justify-between gap-3">
               <dt className="font-mono font-semibold text-slate-900">description</dt>

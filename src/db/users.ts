@@ -1,5 +1,4 @@
-import { db } from './index.ts';
-import { users } from './schema.ts';
+import { supabase } from './index.ts';
 
 export async function getOrCreateUser(
   uid: string,
@@ -7,23 +6,22 @@ export async function getOrCreateUser(
   displayName?: string | null
 ) {
   try {
-    const result = await db
-      .insert(users)
-      .values({
+    const { data, error } = await supabase
+      .from('users')
+      .upsert({
         uid,
         email,
-        displayName: displayName ?? null,
+        display_name: displayName ?? null,
       })
-      .onConflictDoUpdate({
-        target: users.uid,
-        set: {
-          email,
-          displayName: displayName ?? null,
-        },
-      })
-      .returning();
+      .select()
+      .single();
 
-    return result[0];
+    if (error) {
+      console.error('Database user upsert failed:', error);
+      throw new Error('Failed to synchronize operator profile.', { cause: error });
+    }
+
+    return data;
   } catch (error) {
     console.error('Database user upsert failed:', error);
     throw new Error('Failed to synchronize operator profile.', { cause: error });

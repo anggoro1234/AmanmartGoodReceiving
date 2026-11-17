@@ -253,6 +253,7 @@ export function generateSessionCode(now = new Date()): string {
 export interface ParsedCatalogResult {
   validItems: MasterCatalogItem[];
   skippedRows: number;
+  skippedReasons: Array<{ row: number; itemCode?: string; barcode?: string; reason: string }>;
 }
 
 export function parseCatalogRows(
@@ -261,8 +262,10 @@ export function parseCatalogRows(
   const seenBarcodes = new Set<string>();
   const validItems: MasterCatalogItem[] = [];
   let skippedRows = 0;
+  const skippedReasons: Array<{ row: number; itemCode?: string; barcode?: string; reason: string }> = [];
 
-  for (const raw of rawRows) {
+  for (let i = 0; i < rawRows.length; i++) {
+    const raw = rawRows[i];
     const normalizedMap = new Map<string, unknown>();
     for (const [k, v] of Object.entries(raw)) {
       normalizedMap.set(k.trim().toLowerCase().replace(/[\s_-]+/g, ''), v);
@@ -303,15 +306,36 @@ export function parseCatalogRows(
       normalizedMap.get('unitcost') ?? normalizedMap.get('cost') ?? 0
     );
 
-    if (!barcode || !itemCode || !description || seenBarcodes.has(barcode)) {
+    const rowNumber = i + 1;
+
+    if (!itemCode) {
       skippedRows += 1;
+      skippedReasons.push({ row: rowNumber, reason: 'item_code kosong' });
       continue;
     }
 
-    seenBarcodes.add(barcode);
+    if (!description) {
+      skippedRows += 1;
+      skippedReasons.push({ row: rowNumber, itemCode, reason: 'description kosong' });
+      continue;
+    }
+
+    // Generate fallback barcode jika kosong
+    let finalBarcode = barcode;
+    if (!finalBarcode) {
+      finalBarcode = `GEN-${itemCode}`;
+    }
+
+    if (seenBarcodes.has(finalBarcode)) {
+      skippedRows += 1;
+      skippedReasons.push({ row: rowNumber, itemCode, barcode: finalBarcode, reason: 'barcode duplikat' });
+      continue;
+    }
+
+    seenBarcodes.add(finalBarcode);
     validItems.push({
       itemCode,
-      barcode,
+      barcode: finalBarcode,
       description,
       category,
       uom,
@@ -319,5 +343,5 @@ export function parseCatalogRows(
     });
   }
 
-  return { validItems, skippedRows };
+  return { validItems, skippedRows, skippedReasons };
 }

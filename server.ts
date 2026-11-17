@@ -83,14 +83,14 @@ app.post('/api/master-items/import', requireAuth, async (req: AuthRequest, res) 
 
     const sanitized: MasterItemInput[] = [];
     for (const row of rawItems) {
-      const barcode = normalizeBarcode(String(row?.barcode ?? ''));
+      const barcode = String(row?.barcode ?? '').trim();
       const itemCode = String(row?.itemCode ?? '').trim();
       const description = String(row?.description ?? '').trim();
       const category = String(row?.category ?? 'General Merchandise').trim() || 'General Merchandise';
       const uom = String(row?.uom ?? 'PCS').trim().toUpperCase() || 'PCS';
       const unitCost = Number(row?.unitCost ?? 0);
 
-      if (barcode && itemCode && description) {
+      if (itemCode && description) {
         sanitized.push({
           barcode,
           itemCode,
@@ -109,7 +109,11 @@ app.post('/api/master-items/import', requireAuth, async (req: AuthRequest, res) 
     }
 
     const result = await upsertMasterItems(sanitized);
-    res.json(result);
+    res.json({
+      ...result,
+      totalReceived: rawItems.length,
+      totalProcessed: sanitized.length,
+    });
   } catch (error) {
     console.error('Master item import error:', error);
     res.status(500).json({ error: 'Failed to import catalog items.' });
